@@ -5,19 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Trash2 } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const Index = () => {
   const [investors, setInvestors] = useState([]);
-  const [summary, setSummary] = useState({
-    total: 0,
-    preMoney: 0,
-    postMoney: 0,
-  });
+  const [capTable, setCapTable] = useState([]);
 
   const addInvestor = () => {
     setInvestors([
       ...investors,
-      { id: Date.now(), name: "", amount: "", type: "preMoney" },
+      { id: Date.now(), name: "", amount: "", type: "preMoney", equity: "" },
     ]);
   };
 
@@ -33,17 +30,32 @@ const Index = () => {
     setInvestors(investors.filter((investor) => investor.id !== id));
   };
 
-  const calculateSummary = () => {
-    const total = investors.reduce(
+  const calculateCapTable = () => {
+    const totalInvestment = investors.reduce(
       (sum, investor) => sum + Number(investor.amount || 0),
       0
     );
-    const preMoney = investors
-      .filter((investor) => investor.type === "preMoney")
-      .reduce((sum, investor) => sum + Number(investor.amount || 0), 0);
-    const postMoney = total - preMoney;
+    const totalEquity = investors.reduce(
+      (sum, investor) => sum + Number(investor.equity || 0),
+      0
+    );
 
-    setSummary({ total, preMoney, postMoney });
+    const calculatedCapTable = investors.map((investor) => ({
+      name: investor.name,
+      amount: Number(investor.amount || 0),
+      equity: Number(investor.equity || 0),
+      shares: (Number(investor.equity || 0) / 100) * 1000000, // Assuming 1,000,000 total shares
+    }));
+
+    // Add a row for the company
+    calculatedCapTable.push({
+      name: "Company",
+      amount: 0,
+      equity: 100 - totalEquity,
+      shares: ((100 - totalEquity) / 100) * 1000000,
+    });
+
+    setCapTable(calculatedCapTable);
   };
 
   return (
@@ -65,7 +77,7 @@ const Index = () => {
             {investors.map((investor) => (
               <Card key={investor.id}>
                 <CardContent className="pt-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                       <Label htmlFor={`name-${investor.id}`}>Name</Label>
                       <Input
@@ -87,6 +99,18 @@ const Index = () => {
                           updateInvestor(investor.id, "amount", e.target.value)
                         }
                         placeholder="Investment amount"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`equity-${investor.id}`}>Equity (%)</Label>
+                      <Input
+                        id={`equity-${investor.id}`}
+                        type="number"
+                        value={investor.equity}
+                        onChange={(e) =>
+                          updateInvestor(investor.id, "equity", e.target.value)
+                        }
+                        placeholder="Equity percentage"
                       />
                     </div>
                     <div>
@@ -126,16 +150,31 @@ const Index = () => {
         <section>
           <Card>
             <CardHeader>
-              <CardTitle>Summary</CardTitle>
+              <CardTitle>Cap Table</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <p>Total Investment: ${summary.total.toLocaleString()}</p>
-                <p>Pre-money Investment: ${summary.preMoney.toLocaleString()}</p>
-                <p>Post-money Investment: ${summary.postMoney.toLocaleString()}</p>
-              </div>
-              <Button onClick={calculateSummary} className="mt-4">
-                Calculate
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Investor</TableHead>
+                    <TableHead>Investment Amount</TableHead>
+                    <TableHead>Equity Percentage</TableHead>
+                    <TableHead>Total Shares</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {capTable.map((row, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{row.name}</TableCell>
+                      <TableCell>${row.amount.toLocaleString()}</TableCell>
+                      <TableCell>{row.equity.toFixed(2)}%</TableCell>
+                      <TableCell>{Math.round(row.shares).toLocaleString()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <Button onClick={calculateCapTable} className="mt-4">
+                Calculate Cap Table
               </Button>
             </CardContent>
           </Card>
